@@ -7,7 +7,7 @@
 | Dossier | Description |
 |---|---|
 | `WT-RHCSA-V9+corrigé` | Travaux pratiques (WT) avec leur corrigé |
-| `Test-Exam` | Examens blancs et exercices de simulation |
+| `Test-Exam` | Examens blancs et simulation |
 
 ## Utilisation
 
