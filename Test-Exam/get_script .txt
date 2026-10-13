@@ -1,0 +1,2 @@
+git clone https://github.com/Chaimaladhari/RHCSA_TEST/blob/master/RHCSA_TEST.sh
+chmod +x scriptpath
