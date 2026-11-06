@@ -1,41 +1,25 @@
 #!/bin/bash
-
 # RHCSA White Test Evaluation Script
-# Author: Motaz Belleh Bouabker
-# Date: November 30, 2025
-# Modified by Chaima LADHARI on 08/05/2026
 # Students run this script after completing their exam
-
 clear
 echo "============================================"
 echo "   RHCSA White Test Evaluation System"
 echo "============================================"
 echo ""
-
-# Collect student information
-read -p "Enter your full name: " STUDENT_NAME
-read -p "Enter your class: " STUDENT_CLASS
-read -p "Enter your email address: " STUDENT_EMAIL
-
-echo ""
 echo "Before starting, tell me your original swap size of your system:"
 echo "Enter the swap size in MB (e.g., 2048 for 2GB, 4096 for 4GB)"
 echo ""
-
 read -p "Enter swap size in MB: " ORIGINAL_SWAP
-
 # Validate that input is a number
 if ! [[ "$ORIGINAL_SWAP" =~ ^[0-9]+$ ]]; then
     echo "Invalid input. Please enter a number in MB."
     exit 1
 fi
-
 echo "✓ Original swap size: ${ORIGINAL_SWAP}MB"
 echo "✓ Expected new swap size: $((ORIGINAL_SWAP + 512))MB (original + 512MB)"
 echo ""
 
 echo ""
-echo "Starting evaluation for $STUDENT_NAME..."
 echo "Please wait while we check your exam tasks..."
 echo ""
 
@@ -48,10 +32,6 @@ TASK_SCORE=14
 # Results arrays
 declare -A RESULTS
 declare -A OBJECTIVES
-
-# Telegram Bot Configuration
-TELEGRAM_BOT_TOKEN="8114010630:AAGncUykNmI0bNdOiVkYefgxvf4-7po0R6E"
-TELEGRAM_CHAT_ID="8160938003"
 
 # Function to check and score tasks
 check_task() {
@@ -71,17 +51,6 @@ check_task() {
         echo "✗ $task_name"
         return 1
     fi
-}
-
-# Function to send message to Telegram
-send_telegram_message() {
-    local message="$1"
-    local url="https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage"
-   
-    curl -s -X POST "$url" \
-        -d "chat_id=${TELEGRAM_CHAT_ID}" \
-        -d "text=${message}" \
-        -d "parse_mode=HTML" >/dev/null 2>&1
 }
 
 # Evaluate all exam tasks
@@ -188,8 +157,9 @@ find /root/d1 -type f -exec stat -c '%s' {} \; 2>/dev/null | awk '\$1 >= 3072 &&
 $TASK_SCORE "Understand and use essential tools"
 
 # Task 15: Container image (skipped)
-RESULTS["Container image creation"]="SKIP"
-echo "⚠ Container image creation (SKIPPED as instructed)"
+check_task "Container image creation" \
+"sudo -iu athena podman image exists localhost/pdf:latest" \
+$TASK_SCORE "Manage containers"
 
 # Task 16: PDF converter container
 check_task "PDF converter container" \
@@ -257,7 +227,7 @@ OBJECTIVE_MAX_POINTS["Create and configure file systems"]=14 # Task 20 (FIXED)
 OBJECTIVE_MAX_POINTS["Deploy, configure and maintain systems"]=28  # Tasks 3,9
 OBJECTIVE_MAX_POINTS["Manage users and groups"]=42           # Tasks 5,7,10
 OBJECTIVE_MAX_POINTS["Manage security"]=28                   # Tasks 1,4
-OBJECTIVE_MAX_POINTS["Manage containers"]=28                 # Tasks 16,17
+OBJECTIVE_MAX_POINTS["Manage containers"]=42                 # Tasks 15,16,17
 
 # -----------------------------Calculate actual percentages---------------------------------------------
 for objective in "${!OBJECTIVE_MAX_POINTS[@]}"; do
@@ -286,8 +256,7 @@ echo ""
 echo "========================================="
 echo "          EXAM RESULTS"
 echo "========================================="
-echo "Student: $STUDENT_NAME"
-echo "Class: $STUDENT_CLASS"
+
 echo "Score: $TOTAL_SCORE out of $MAX_SCORE points"
 echo "Result: $RESULT"
 echo ""
@@ -315,77 +284,9 @@ printf "%-45s %s%%\n" "Manage users and groups" "${OBJECTIVE_PERCENTAGES["Manage
 printf "%-45s %s%%\n" "Manage security" "${OBJECTIVE_PERCENTAGES["Manage security"]}"
 printf "%-45s %s%%\n" "Manage containers" "${OBJECTIVE_PERCENTAGES["Manage containers"]}"
 echo "========================================="
-echo ""
 
-# -------------------------------------Save results to file-------------------------------------------------
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-RESULTS_FILE="/root/exam_results_${STUDENT_NAME// /_}_$TIMESTAMP.txt"
-
-{
-    echo "RHCSA White Test Results"
-    echo "========================"
-    echo "Student: $STUDENT_NAME"
-    echo "Class: $STUDENT_CLASS"
-    echo "Email: $STUDENT_EMAIL"
-    echo "Date: $(date)"
-    echo "Score: $TOTAL_SCORE/$MAX_SCORE"
-    echo "Result: $RESULT"
-    echo ""
-    echo "Task Results:"
-    for task in "${!RESULTS[@]}"; do
-        echo "  $task: ${RESULTS[$task]}"
-    done
-    echo ""
-    echo "Performance on exam objectives:"
-    echo "Manage basic networking: ${OBJECTIVE_PERCENTAGES["Manage basic networking"]}%"
-    echo "Understand and use essential tools: ${OBJECTIVE_PERCENTAGES["Understand and use essential tools"]}%"
-    echo "Operate running systems: ${OBJECTIVE_PERCENTAGES["Operate running systems"]}%"
-    echo "Configure local storage: ${OBJECTIVE_PERCENTAGES["Configure local storage"]}%"
-    echo "Create and configure file systems: ${OBJECTIVE_PERCENTAGES["Create and configure file systems"]}%"
-    echo "Deploy, configure and maintain systems: ${OBJECTIVE_PERCENTAGES["Deploy, configure and maintain systems"]}%"
-    echo "Manage users and groups: ${OBJECTIVE_PERCENTAGES["Manage users and groups"]}%"
-    echo "Manage security: ${OBJECTIVE_PERCENTAGES["Manage security"]}%"
-    echo "Manage containers: ${OBJECTIVE_PERCENTAGES["Manage containers"]}%"
-} > "$RESULTS_FILE"
-
-# ----------------------------------Create Telegram message---------------------------------------------------
-TELEGRAM_MESSAGE="🎓 <b>EX200 RHCSA White Exam Results</b>
-
-👤 <b>Student:</b> $STUDENT_NAME
-📚 <b>Class:</b> $STUDENT_CLASS
-📧 <b>Email:</b> $STUDENT_EMAIL
-📅 <b>Date:</b> $(date '+%Y-%m-%d %H:%M:%S')
-
-🎯 <b>Passing Score:</b> $PASSING_SCORE
-📊 <b>Your Score:</b> $TOTAL_SCORE/$MAX_SCORE
-
-🏆 <b>Result:</b> $RESULT
-
-$CONGRATULATIONS
-
-📈 <b>Performance on exam objectives:</b>
-🌐 Manage basic networking: ${OBJECTIVE_PERCENTAGES["Manage basic networking"]}%
-🔧 Understand and use essential tools: ${OBJECTIVE_PERCENTAGES["Understand and use essential tools"]}%
-⚙️ Operate running systems: ${OBJECTIVE_PERCENTAGES["Operate running systems"]}%
-💾 Configure local storage: ${OBJECTIVE_PERCENTAGES["Configure local storage"]}%
-📁 Create and configure file systems: ${OBJECTIVE_PERCENTAGES["Create and configure file systems"]}%
-🚀 Deploy, configure and maintain systems: ${OBJECTIVE_PERCENTAGES["Deploy, configure and maintain systems"]}%
-👥 Manage users and groups: ${OBJECTIVE_PERCENTAGES["Manage users and groups"]}%
-🔒 Manage security: ${OBJECTIVE_PERCENTAGES["Manage security"]}%
-📦 Manage containers: ${OBJECTIVE_PERCENTAGES["Manage containers"]}%
-
-📝 <b>Instructor:</b> Chaima LADHARI"
-
-# ---------------------------------Send results to Telegram------------------------------------------------------
-echo "Sending results to Telegram..."
-if send_telegram_message "$TELEGRAM_MESSAGE"; then
-    echo "✅ Results sent to Telegram successfully!"
-else
-    echo "⚠ Failed to send results to Telegram. Please check your bot token and chat ID."
-fi
 
 echo ""
-echo "Results saved to: $RESULTS_FILE"
 echo "Thank you for taking the RHCSA White Test!"
 
 exit 0
